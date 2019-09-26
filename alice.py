@@ -16,13 +16,11 @@ with CQCConnection("Alice") as Alice:
     Alice.sendClassical(recipient, length)
     confirmation = int.from_bytes(Alice.recvClassical(), byteorder="big")
 
-    print("Conform message length {}: {}".format(length, confirmation == length))
-
     # Get key, encode key, send to bob
     key, qubits, bases = create_master_key(Alice, length)
     key_bit_vect = BitVector(intVal=key)
-    print("Key:           {}".format(bin(key)))
-    print("Bases:         {}".format(bin(int(bases))))
+    # print("Key:           {}".format(bin(key)))
+    # print("Bases:         {}".format(bin(int(bases))))
 
     # If we measaure in the standard basis on Bob's block, we should see the 0 numbers be correct
     for q in qubits:
@@ -32,10 +30,11 @@ with CQCConnection("Alice") as Alice:
 
     # receive bases used by Bob
     bobs_bases = BitVector(bitlist=Alice.recvClassical())
-    print("Bobs bases:    {}".format(bin(bobs_bases.int_val())))
+    # print("Bobs bases:    {}".format(bin(bobs_bases.int_val())))
     correct_bases = ~bobs_bases ^ bases
-    print("Correct:       {}".format(bin(int(correct_bases))))
-    print(type(correct_bases))
+    correctness = correct_bases.count_bits() / length
+    # print("Correct:       {}".format(bin(int(correct_bases))))
+    print(correctness)
 
     # Send bob correct bases
     Alice.sendClassical(recipient, correct_bases[:])
