@@ -1,4 +1,7 @@
+import base64
 from BitVector import BitVector
+from Crypto.Cipher import AES
+from Crypto import Random
 import math
 import random
 
@@ -26,6 +29,11 @@ Protocol:
 """
 
 # TODO: Abstract these methods into a q-register data type
+
+# Contants
+OK = 5
+ERROR = 20
+TAMPERED = 80
 
 """
 Quantum helper functions
@@ -156,6 +164,61 @@ def truncate_key(key, length, correct_bases):
     key_bit_vect = BitVector(intVal=key, size=length)
     truncated_key = [key_bit_vect[i] for i in range(length) if correct_bases[i] is 1]
     return BitVector(bitlist=truncated_key)
+
+
+def validate_generated_key(full_length, acceptable_error, truncated_key):
+    error_rate = 1 - (len(truncated_key) / full_length)
+    if error_rate <= acceptable_error:
+        return OK
+    elif error_rate > (1.5 * acceptable_error):
+        return TAMPERED
+    else:
+        return ERROR
+
+
+"""
+break_into_parts breaks the key into the true key and the verification bits.
+The given key must be at least 1.5 * key_length bits long.
+
+param key: The current bits generated through exchange
+param key_length: The length of the final key
+
+return verification: the first (key_length / 2) bits of the given key
+return true_key: the last (key_length) bits of the given key
+
+"""
+
+
+def break_into_parts(key, key_length):
+    # This should be inforced by the validate_generated_key function
+    if len(key) < 1.5 * key_length:
+        raise Exception("Bits not long enough to break into verification bits and key")
+
+    verification = key[: int(key_length / 2)]
+    true_key = key[int(len(key) - key_length) :]
+    print(type(key))
+    return verification, key_length
+
+
+BLOCK_SIZE = 16
+pad = lambda s: s + (BLOCK_SIZE - len(s) % BLOCK_SIZE) * chr(
+    BLOCK_SIZE - len(s) % BLOCK_SIZE
+)
+unpad = lambda s: s[: -ord(s[len(s) - 1 :])]
+
+
+def encrypt(raw, key):
+    raw = pad(raw)
+    iv = Random.new().read(AES.block_size)
+    cipher = AES.new(bytes(key), AES.MODE_CBC, iv)
+    return base64.b64encode(iv + cipher.encrypt(raw))
+
+
+def decrypt(enc, key):
+    enc = base64.b64decode(enc)
+    iv = enc[:16]
+    cipher = AES.new(bytes(key), AES.MODE_CBC, iv)
+    return unpad(cipher.decrypt(enc[16:]))
 
 
 def test():
