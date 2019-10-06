@@ -13,7 +13,7 @@ author: Andrew H. Thorp andrew.thorp.dev@gmail.com
 
 Protocol:
     1.  Alice and Bob connect via quantum network simulator (simulaqron)
-    2.  Alice generates n random bits; n > 2m, m = desired key size
+    2.  Alice generates n random bits; n > 3k, k = desired key size
     3.  Alice encodes the bits into qubits, randomly chosing to encode using one 
         of two orthoganal bases (Standard and Hadamard basis)
     4.  Alice sends the qubits to Bob
@@ -21,23 +21,131 @@ Protocol:
     6.  Bob sends a bitvector of the bases used to measure to Alice over a classical channel
     7.  Alice responds with a bitvector of which bases were correct
     8.  Alice and Bob discard all qubits that were measured in the wrong basis
-    9.  Bob sends Alice a small number of the measurements to ensure the key was recieved without
+    9.  Bob sends Alice k/2 of the measurements to ensure the key was recieved without
         any eavesdropping
     10. Alice responds with whether or not the measured values were correct
     11. The values compared are discarded by both parties, and the rest of the bits are used as
-        the key 
+        the key if there were no errors in the compared measurements
 """
 
 # TODO: Abstract these methods into a q-register data type
 
+###################
 # Contants
+###################
 OK = 5
 ERROR = 20
 TAMPERED = 80
 
-"""
-Quantum helper functions
-"""
+###################
+# Opperations
+###################
+def initiate_keygen(
+    key_size=32, name="Alice", recipient="Bob", acceptable_error=0.5, q_logger=print
+):
+    length = 3 * key_size
+    q_logger("Begginning key initialization with {}".format(recipient))
+    with CQCConnection(name) as conn:
+        q_logger("Connection made")
+
+        # Send bob key length
+        conn.sendClassical(recipient, length)
+        confirmation = int.from_bytes(conn.recvClassical(), byteorder="big")
+
+        # Get key, encode key, send to bob
+        key, qubits, bases = create_master_key(conn, length)
+        key_bit_vect = BitVector(intVal=key)
+        q_logger("Key:           {}".format(bin(key)))
+        q_logger("Bases:         {}".format(bin(int(bases))))
+
+        # If we measaure in the standard basis on Bob's block, we should see the 0 numbers be correct
+        for q in qubits:
+            conn.sendQubit(q, recipient)
+
+        conn.sendClassical(recipient, bases)
+
+        # receive bases used by Bob
+        bobs_bases = BitVector(bitlist=conn.recvClassical())
+        q_logger("Bobs bases:    {}".format(bin(bobs_bases.int_val())))
+        correct_bases = ~bobs_bases ^ bases
+        correctness = correct_bases.count_bits() / length
+        q_logger("Correct:       {}".format(bin(int(correct_bases))))
+        q_logger(correctness)
+
+        # Send bob correct bases
+        conn.sendClassical(recipient, correct_bases[:])
+        key = truncate_key(key, length, correct_bases)
+
+        if validate_generated_key(length, acceptable_error, key) != OK:
+            raise Exception("Poor error rate: {}".format(1 - (len(key) / length)))
+            exit(0)
+
+        expected_verify, key = break_into_parts(key, key_size)
+        verification_bits = BitVector(bitlist=conn.recvClassical())
+
+        if expected_verify == verification_bits:
+            conn.sendClassical(recipient, OK)
+        else:
+            conn.sendClassical(recipient, TAMPERED)
+            pass
+
+        if conn.recvClassical() != OK:
+            # raise exception
+            pass
+
+        return key
+
+
+def target_keygen(name="Bob", initiator="Alice"):
+    with CQCConnection(name) as conn:
+        # print("Connection made")
+        # Receive lenth and initialize varaiables
+        length = int.from_bytes(conn.recvClassical(), byteorder="big")
+        key_length = length / 3
+        conn.sendClassical(initiator, length)
+        # print(length)
+        qubits = [None] * length
+
+        for i in range(length):
+            qubits[i] = conn.recvQubit()
+
+        bases = BitVector(bitlist=conn.recvClassical())
+
+        key, bases = measure_random(qubits)
+        # print("Key:     {}".format(bin(key)))
+        # print("Bases:   {}".format(bin(bases.int_val())))
+
+        # Since we can only send indiviual numbers from 0-256,
+        # we have to split this up into a list of digits.
+        # Use slice to extract list from bitvector
+        conn.sendClassical(initiator, bases[:])
+
+        correct_bases = BitVector(bitlist=conn.recvClassical())
+        # print("Correct: {}".format(bin(int(correct_bases))))
+
+        # Remove all incorrectly measured bits
+        key = truncate_key(key, length, correct_bases)
+
+        # Break into verification bits and final key
+        verification_bits, key = break_into_parts(key, key_length)
+        conn.sendClassical(initiator, verification_bits[:])
+
+        response = conn.recvClassical()
+
+        if response == OK:
+            # print("Key OK to use")
+            conn.sendClassical(initiator, OK)
+            pass
+        elif response == TAMPERED:
+            # print("Key compromised!")
+            pass
+
+        return key
+
+
+#############################
+# Quantum helper functions
+#############################
 
 # Generate random-basis quantum-encoded key of length n
 def create_master_key(connection, key_length):
@@ -196,7 +304,7 @@ def break_into_parts(key, key_length):
 
     verification = key[: int(key_length / 2)]
     true_key = key[int(len(key) - key_length) :]
-    print(type(key))
+    # print(type(key))
     return verification, key_length
 
 
@@ -224,9 +332,9 @@ def decrypt(enc, key):
 def test():
     with CQCConnection("Alice") as Alice:
         key = random.randint(0, pow(2, 99) - 1)
-        print("Key:    {}".format(hex(key)))
+        # print("Key:    {}".format(hex(key)))
         encoded, bases = encode_random(Alice, key)
         decoded = measure_given_basis(encoded, bases)
-        print("Basis': {}".format(hex(int(bases))))
-        print("Result: {}".format(hex(decoded)))
-        print("Correct:{}".format(key == decoded))
+        # print("Basis': {}".format(hex(int(bases))))
+        # print("Result: {}".format(hex(decoded)))
+        # print("Correct:{}".format(key == decoded))
