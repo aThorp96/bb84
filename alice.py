@@ -8,7 +8,7 @@ length = 3 * key_size
 acceptable_error = 0.5
 recipient = "Bob"
 
-
+"""
 with CQCConnection("Alice") as Alice:
     print("Connection made")
 
@@ -22,11 +22,8 @@ with CQCConnection("Alice") as Alice:
     # print("Key:           {}".format(bin(key)))
     # print("Bases:         {}".format(bin(int(bases))))
 
-    # If we measaure in the standard basis on Bob's block, we should see the 0 numbers be correct
     for q in qubits:
         Alice.sendQubit(q, recipient)
-
-    Alice.sendClassical(recipient, bases)
 
     # receive bases used by Bob
     bobs_bases = BitVector(bitlist=Alice.recvClassical())
@@ -52,8 +49,10 @@ with CQCConnection("Alice") as Alice:
         pass
     else:
         Alice.sendClassical(recipient, OK)
-
-    # Test AES encoding a message
+"""
+key = initiate_keygen()
+# Test AES encoding a message
+with CQCConnection("Alice") as Alice:
     message = "Hello bob!"
     encrypted = encrypt(message, key)
     print(encrypted)

@@ -3,6 +3,7 @@ from BitVector import BitVector
 from Crypto.Cipher import AES
 from Crypto import Random
 import math
+from time import sleep
 import random
 
 from cqc.pythonLib import CQCConnection, qubit, CQCNoQubitError
@@ -45,12 +46,15 @@ def initiate_keygen(
 ):
     length = 3 * key_size
     q_logger("Begginning key initialization with {}".format(recipient))
-    with CQCConnection(name) as conn:
-        q_logger("Connection made")
+    with get_CQCConnection(name) as conn:
+        q_logger("init Connection made")
 
         # Send bob key length
+        q_logger("sending length")
         conn.sendClassical(recipient, length)
+        q_logger("Length sent, awaiting confirmation")
         confirmation = int.from_bytes(conn.recvClassical(), byteorder="big")
+        q_logger("recieved length conformation")
 
         # Get key, encode key, send to bob
         key, qubits, bases = create_master_key(conn, length)
@@ -58,11 +62,10 @@ def initiate_keygen(
         q_logger("Key:           {}".format(bin(key)))
         q_logger("Bases:         {}".format(bin(int(bases))))
 
-        # If we measaure in the standard basis on Bob's block, we should see the 0 numbers be correct
+        # Send all the qubits sequentially
         for q in qubits:
             conn.sendQubit(q, recipient)
-
-        conn.sendClassical(recipient, bases)
+        q_logger("sent qubits!")
 
         # receive bases used by Bob
         bobs_bases = BitVector(bitlist=conn.recvClassical())
@@ -83,37 +86,44 @@ def initiate_keygen(
         expected_verify, key = break_into_parts(key, key_size)
         verification_bits = BitVector(bitlist=conn.recvClassical())
 
+        q_logger("Comparing verification bits")
         if expected_verify == verification_bits:
+            q_logger("Verification bits OK")
             conn.sendClassical(recipient, OK)
         else:
+            q_logger("Bits Tampered")
             conn.sendClassical(recipient, TAMPERED)
-            pass
 
         if conn.recvClassical() != OK:
             # raise exception
             pass
 
+        q_logger("Key generated: {}".format(hex(key)))
         return key
 
 
-def target_keygen(name="Bob", initiator="Alice"):
-    with CQCConnection(name) as conn:
-        # print("Connection made")
+def target_keygen(name="Bob", initiator="Alice", q_logger=print):
+    q_logger("Receiving keygen")
+    with get_CQCConnection(name) as conn:
+        q_logger("target Connection made")
         # Receive lenth and initialize varaiables
         length = int.from_bytes(conn.recvClassical(), byteorder="big")
-        key_length = length / 3
+        q_logger("Length recieved")
         conn.sendClassical(initiator, length)
-        # print(length)
+        q_logger("Conformation sent")
+        key_length = length / 3
+        q_logger(length)
         qubits = [None] * length
 
+        sleep(10)
         for i in range(length):
             qubits[i] = conn.recvQubit()
 
-        bases = BitVector(bitlist=conn.recvClassical())
+        q_logger("Recieved qubits!")
 
         key, bases = measure_random(qubits)
-        # print("Key:     {}".format(bin(key)))
-        # print("Bases:   {}".format(bin(bases.int_val())))
+        q_logger("Key:     {}".format(bin(key)))
+        q_logger("Bases:   {}".format(bin(bases.int_val())))
 
         # Since we can only send indiviual numbers from 0-256,
         # we have to split this up into a list of digits.
@@ -121,7 +131,7 @@ def target_keygen(name="Bob", initiator="Alice"):
         conn.sendClassical(initiator, bases[:])
 
         correct_bases = BitVector(bitlist=conn.recvClassical())
-        # print("Correct: {}".format(bin(int(correct_bases))))
+        q_logger("Correct: {}".format(bin(int(correct_bases))))
 
         # Remove all incorrectly measured bits
         key = truncate_key(key, length, correct_bases)
@@ -133,12 +143,13 @@ def target_keygen(name="Bob", initiator="Alice"):
         response = conn.recvClassical()
 
         if response == OK:
-            # print("Key OK to use")
+            q_logger("Key OK to use")
             conn.sendClassical(initiator, OK)
             pass
         elif response == TAMPERED:
-            # print("Key compromised!")
+            q_logger("Key compromised!")
             pass
+        conn.sendClassical(initiator, OK)
 
         return key
 
@@ -146,6 +157,12 @@ def target_keygen(name="Bob", initiator="Alice"):
 #############################
 # Quantum helper functions
 #############################
+
+
+def get_CQCConnection(name):
+    with CQCConnection(name) as n:
+        return n
+
 
 # Generate random-basis quantum-encoded key of length n
 def create_master_key(connection, key_length):
@@ -330,7 +347,7 @@ def decrypt(enc, key):
 
 
 def test():
-    with CQCConnection("Alice") as Alice:
+    with get_CQCConnection("Alice") as Alice:
         key = random.randint(0, pow(2, 99) - 1)
         # print("Key:    {}".format(hex(key)))
         encoded, bases = encode_random(Alice, key)

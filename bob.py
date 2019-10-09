@@ -1,6 +1,9 @@
 from bb84.bb84 import *
 from BitVector import BitVector
 
+enc_key = None
+
+"""
 with CQCConnection("Bob") as Bob:
     print("Connection made")
     # Receive lenth and initialize varaiables
@@ -12,8 +15,6 @@ with CQCConnection("Bob") as Bob:
 
     for i in range(length):
         qubits[i] = Bob.recvQubit()
-
-    bases = BitVector(bitlist=Bob.recvClassical())
 
     key, bases = measure_random(qubits)
     print("Key:     {}".format(bin(key)))
@@ -33,16 +34,33 @@ with CQCConnection("Bob") as Bob:
     # Break into verification bits and final key
     verification_bits, key = break_into_parts(key, key_length)
     Bob.sendClassical("Alice", verification_bits[:])
+    enc_key = key
 
+    print("awaiting OK")
     response = Bob.recvClassical()
 
-    if response == OK:
+    if response == bytes(OK):
         print("Key OK to use")
-    elif response == TAMPERED:
+    elif response == bytes(TAMPERED):
         print("Key compromised!")
         pass
+    print("Message recieved")
 
-    # Test decrypt message
+    Bob.sendClassical("Alice", OK)
+
+"""
+with CQCConnection("Bob") as Bob:
+    # capture Q_Keygen code
+    code = Bob.recvClassical()
+print("Calling target keygen")
+key = target_keygen()
+# Test decrypt message
+with CQCConnection("Bob") as Bob:
+    print("Awaiting encrypted message")
+    # capture message header
+    header = Bob.recvClassical()
+    print("Header recieved")
     encrypted = Bob.recvClassical()
+    print("Message recieved")
     message = decrypt(encrypted, int(key))
     print(message)
