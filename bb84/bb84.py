@@ -80,7 +80,7 @@ def initiate_keygen(
         key = truncate_key(key, length, correct_bases)
 
         if validate_generated_key(length, acceptable_error, key) != OK:
-            raise Exception("Poor error rate: {}".format(1 - (len(key) / length)))
+            raise PoorErrorRate("Poor error rate: {}".format(1 - (len(key) / length)))
             exit(0)
 
         expected_verify, key = break_into_parts(key, key_size)
@@ -158,10 +158,12 @@ def target_keygen(name="Bob", initiator="Alice", q_logger=print):
 # Quantum helper functions
 #############################
 
+cqcMap = {}
+
 
 def get_CQCConnection(name):
-    with CQCConnection(name) as n:
-        return n
+    cqcMap[name] = CQCConnection(name)
+    return cqcMap[name]
 
 
 # Generate random-basis quantum-encoded key of length n
@@ -301,23 +303,27 @@ def validate_generated_key(full_length, acceptable_error, truncated_key):
         return ERROR
 
 
-"""
-break_into_parts breaks the key into the true key and the verification bits.
-The given key must be at least 1.5 * key_length bits long.
-
-param key: The current bits generated through exchange
-param key_length: The length of the final key
-
-return verification: the first (key_length / 2) bits of the given key
-return true_key: the last (key_length) bits of the given key
-
-"""
+class PoorErrorRate(Exception):
+    pass
 
 
 def break_into_parts(key, key_length):
+    """
+    break_into_parts breaks the key into the true key and the verification bits.
+    The given key must be at least 1.5 * key_length bits long.
+
+    param key: The current bits generated through exchange
+    param key_length: The length of the final key
+
+    return verification: the first (key_length / 2) bits of the given key
+    return true_key: the last (key_length) bits of the given key
+
+    """
     # This should be inforced by the validate_generated_key function
     if len(key) < 1.5 * key_length:
-        raise Exception("Bits not long enough to break into verification bits and key")
+        raise PoorErrorRate(
+            "Bits not long enough to break into verification bits and key"
+        )
 
     verification = key[: int(key_length / 2)]
     true_key = key[int(len(key) - key_length) :]
