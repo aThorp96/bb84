@@ -49,11 +49,10 @@ with CQCConnection("Bob") as Bob:
     Bob.sendClassical("Alice", OK)
 
 """
-with CQCConnection("Bob") as Bob:
-    # capture Q_Keygen code
-    code = Bob.recvClassical()
+
 print("Calling target keygen")
 key = target_keygen()
+print(key)
 # Test decrypt message
 with CQCConnection("Bob") as Bob:
     print("Awaiting encrypted message")

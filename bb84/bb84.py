@@ -328,7 +328,7 @@ def break_into_parts(key, key_length):
     verification = key[: int(key_length / 2)]
     true_key = key[int(len(key) - key_length) :]
     # print(type(key))
-    return verification, key_length
+    return verification, true_key
 
 
 BLOCK_SIZE = 16
