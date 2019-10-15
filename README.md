@@ -10,4 +10,4 @@ You will have to configure simulaqron to have at least 3n qubits, where n is the
 
 
 ##### Note
-The Crypto library has been listed as having security vulnerabilities. I reccomend using the key without using my encrypt and decrypt functions. 
+The Crypto library has been listed as having security vulnerabilities at version 2.6.1. I reccomend using the key without using my encrypt and decrypt functions. 
