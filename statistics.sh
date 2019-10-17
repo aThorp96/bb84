@@ -1,4 +1,7 @@
 #!/bin/bash
+# This script runs alice.py and bob.py a number of times and records the output.
+# It was designed to get some statistics on error the error rate of the key exchage,
+# but it could be used as an example of how one might setup simulaqron and run alice.py and bob.py
 
 RUNS=1000
 LOG="results.csv"
