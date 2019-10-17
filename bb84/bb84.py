@@ -98,7 +98,6 @@ def initiate_keygen(
             # raise exception
             pass
 
-        q_logger("Key generated: {}".format(hex(key)))
         return key
 
 
@@ -108,6 +107,8 @@ def target_keygen(name="Bob", initiator="Alice", q_logger=print):
         q_logger("target Connection made")
         # Receive lenth and initialize varaiables
         length = int.from_bytes(conn.recvClassical(), byteorder="big")
+        if length == 0:
+            length = 256
         q_logger("Length recieved")
         conn.sendClassical(initiator, length)
         q_logger("Conformation sent")
@@ -115,7 +116,7 @@ def target_keygen(name="Bob", initiator="Alice", q_logger=print):
         q_logger(length)
         qubits = [None] * length
 
-        sleep(10)
+        sleep(15)
         for i in range(length):
             qubits[i] = conn.recvQubit()
 
@@ -328,27 +329,28 @@ def break_into_parts(key, key_length):
     verification = key[: int(key_length / 2)]
     true_key = key[int(len(key) - key_length) :]
     # print(type(key))
-    return verification, true_key
+    return verification, BitVector(intVal=int(true_key), size=16 * 8)
 
 
 BLOCK_SIZE = 16
 pad = lambda s: s + (BLOCK_SIZE - len(s) % BLOCK_SIZE) * chr(
     BLOCK_SIZE - len(s) % BLOCK_SIZE
 )
+
 unpad = lambda s: s[: -ord(s[len(s) - 1 :])]
 
 
 def encrypt(raw, key):
     raw = pad(raw)
     iv = Random.new().read(AES.block_size)
-    cipher = AES.new(bytes(key), AES.MODE_CBC, iv)
+    cipher = AES.new(key.to_bytes(16, byteorder="big"), AES.MODE_CBC, iv)
     return base64.b64encode(iv + cipher.encrypt(raw))
 
 
 def decrypt(enc, key):
     enc = base64.b64decode(enc)
     iv = enc[:16]
-    cipher = AES.new(bytes(key), AES.MODE_CBC, iv)
+    cipher = AES.new(key.to_bytes(16, byteorder="big"), AES.MODE_CBC, iv)
     return unpad(cipher.decrypt(enc[16:]))
 
 
