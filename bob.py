@@ -57,9 +57,8 @@ print(key)
 with CQCConnection("Bob") as Bob:
     print("Awaiting encrypted message")
     # capture message header
-    header = Bob.recvClassical()
-    print("Header recieved")
     encrypted = Bob.recvClassical()
     print("Message recieved")
     message = decrypt(encrypted, int(key))
+    print("Message: ")
     print(message)

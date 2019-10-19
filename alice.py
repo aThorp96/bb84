@@ -51,6 +51,7 @@ with CQCConnection("Alice") as Alice:
         Alice.sendClassical(recipient, OK)
 """
 key = initiate_keygen()
+
 # Test AES encoding a message
 with CQCConnection("Alice") as Alice:
     message = "Hello bob!"

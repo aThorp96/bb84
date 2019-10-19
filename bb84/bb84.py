@@ -341,6 +341,9 @@ unpad = lambda s: s[: -ord(s[len(s) - 1 :])]
 
 
 def encrypt(raw, key):
+    # Cast key to int if it isn't already
+    if not isinstance(key, int):
+        key = int(key)
     raw = pad(raw)
     iv = Random.new().read(AES.block_size)
     cipher = AES.new(key.to_bytes(16, byteorder="big"), AES.MODE_CBC, iv)
@@ -348,7 +351,10 @@ def encrypt(raw, key):
 
 
 def decrypt(enc, key):
+    # Cast key to int if it isn't already
     enc = base64.b64decode(enc)
+    if not isinstance(key, int):
+        key = int(key)
     iv = enc[:16]
     cipher = AES.new(key.to_bytes(16, byteorder="big"), AES.MODE_CBC, iv)
     return unpad(cipher.decrypt(enc[16:]))
