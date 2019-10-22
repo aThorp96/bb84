@@ -1,8 +1,8 @@
 # bb84
 
 ### To install:
-`pip3 install --user -r requirements.txt`
-If you're using a virtualenv, you will need to install cqc and simulaqron outside of it as well **if you know how to work around this feel free to let me know**
+`pip3 install git+https://github.com/athorp96/bb84.git`
+If you're using a virtualenv, you will need to install cqc and simulaqron outside of the virtual env __as well__ **if you know how to work around this feel free to let me know**
 
 ### To run:
 `alice.py` and `bob.py` are two example clients on how two parties would use the library.
