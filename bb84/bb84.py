@@ -347,7 +347,7 @@ def encrypt(raw, key):
     raw = pad(raw)
     iv = Random.new().read(AES.block_size)
     cipher = AES.new(key.to_bytes(16, byteorder="big"), AES.MODE_CBC, iv)
-    return base64.b64encode(iv + cipher.encrypt(raw))
+    return base64.b64encode(iv + cipher.encrypt(bytes(raw, 'utf8')))
 
 
 def decrypt(enc, key):
