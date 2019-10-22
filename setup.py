@@ -1,9 +1,9 @@
-from setuptools import setup, find_namespace_packages
+from setuptools import setup
 
 setup(
     name='bb84',    # This is the name of your PyPI-package.
     version='1.0',                          # Update the version number for new releases
-    packages=find_namespace_packages(include=["bb84.*"]),
+    packages=['bb84'],
     scripts=['alice.py', 'bob.py'],
     install_requires=['bitvector', 'pycrypto', 'cqc'],
     author='Andrew Thorp',

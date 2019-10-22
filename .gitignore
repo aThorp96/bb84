@@ -1,1 +1,4 @@
-*__pycache__*
+bb84/__pycache__*
+*.egg*
+build
+dist
