@@ -7,7 +7,5 @@ If you're using a virtualenv, you will need to install cqc and simulaqron outsid
 ### To run:
 `alice.py` and `bob.py` are two example clients on how two parties would use the library.
 You will have to configure simulaqron to have at least 3n qubits, where n is the number of bits in your key.
+This can be done by running `simulaqron set max-qubits <number of qubits>` and stopping and starting simulaqron again.
 
-
-##### Note
-The Crypto library has been listed as having security vulnerabilities at version 2.6.1. I reccomend using the key without using my encrypt and decrypt functions. 
