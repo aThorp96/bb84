@@ -87,6 +87,7 @@ def initiate_keygen(
         verification_bits = BitVector(bitlist=conn.recvClassical())
 
         q_logger("Comparing verification bits")
+
         if expected_verify == verification_bits:
             q_logger("Verification bits OK")
             conn.sendClassical(recipient, OK)
@@ -170,7 +171,7 @@ def get_CQCConnection(name):
 # Generate random-basis quantum-encoded key of length n
 def create_master_key(connection, key_length):
     key = random.randint(0, pow(2, key_length) - 1)
-    encoded, bases = encode_random(connection, key)
+    encoded, bases = encode_random(connection, key, key_length)
     return key, encoded, bases
 
 
@@ -182,8 +183,8 @@ def get_length(num):
 # Intake a CQCConnection and a number of arbitrary length
 #
 # Return an array of qubits encoding the number and a bitvector of the basis used for each bit
-def encode_random(connection, number):
-    length = get_length(number)
+def encode_random(connection, number, length):
+    print("Bases length: {}".format(length))
     bases = BitVector(size=length)
     encoded = [None] * length
     num_vector = BitVector(intVal=number, size=length)
@@ -347,7 +348,7 @@ def encrypt(raw, key):
     raw = pad(raw)
     iv = Random.new().read(AES.block_size)
     cipher = AES.new(key.to_bytes(16, byteorder="big"), AES.MODE_CBC, iv)
-    return base64.b64encode(iv + cipher.encrypt(bytes(raw, 'utf8')))
+    return base64.b64encode(iv + cipher.encrypt(bytes(raw, "utf8")))
 
 
 def decrypt(enc, key):
@@ -364,7 +365,7 @@ def test():
     with get_CQCConnection("Alice") as Alice:
         key = random.randint(0, pow(2, 99) - 1)
         # print("Key:    {}".format(hex(key)))
-        encoded, bases = encode_random(Alice, key)
+        encoded, bases = encode_random(Alice, key, 100)
         decoded = measure_given_basis(encoded, bases)
         # print("Basis': {}".format(hex(int(bases))))
         # print("Result: {}".format(hex(decoded)))
