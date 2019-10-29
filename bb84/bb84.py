@@ -244,49 +244,61 @@ def measure_given_basis(encoded_num, bases):
 # Given a number, the number of bits to encode, and a connection to a CQC network,
 # encode that number into an array of qubits and return the result
 def encode_standard(connection, number):
-    # Determine number of bits needed to store the number
-    length = get_length(number)
-    qubits = [None] * length
+    encoded = [None] * length
+    num_vector = BitVector(intVal=number, size=length)
+
     for i in range(length):
-        qubits[i] = qubit(connection)
-        if (number & (1 << i)) != 0:
-            qubits[i].X()
-    return qubits
+        encoded[i] = qubit(connection)
+        if num_vector[i] != 0:
+            encoded[i].X()  # Apply not gate
+
+    return encoded
 
 
 # Measure a q-register in the standard basis
 def measure_standard(encoded_num):
     length = len(encoded_num)
-    decoded_num = 0
+    decoded_num = BitVector(size=length, intVal=0)
+    bases = BitVector(size=length)
+
     for i in range(length):
-        bit = (1 & encoded_num[i].measure()) << i
-        decoded_num |= bit
-    return decoded_num
+        # Measure the bit and insert it into the decoded number
+        measure = encoded_num[i].measure()
+        decoded_num[i] = measure
+
+    return decoded_num, bases
 
 
 # Given a number, the number of bits to encode, and a connection to a CQC network,
 # encode that number into an array of qubits using the Hadamard basis
 def encode_hadamard(connection, number):
-    # Determine number of bits needed to store the number
-    length = get_length(number)
-    qubits = [None] * length
+    encoded = [None] * length
+    num_vector = BitVector(intVal=number, size=length)
+
     for i in range(length):
-        qubits[i] = qubit(connection)
-        if (number & (1 << i)) != 0:
-            qubits[i].X()
-        qubits[i].H()
-    return qubits
+        encoded[i] = qubit(connection)
+        if num_vector[i] != 0:
+            encoded[i].X()  # Apply not gate
+
+        # Put qubit into the hadamard basis
+        encoded[i].H()
+
+    return encoded
 
 
 # Measure a q-register in the Hadamard basis
 def measure_hadamard(encoded_num):
     length = len(encoded_num)
-    decoded_num = 0
+    decoded_num = BitVector(size=length, intVal=0)
+    bases = BitVector(size=length)
+
     for i in range(length):
-        encoded_num[i].H()
-        bit = (1 & encoded_num[i].measure()) << i
-        decoded_num |= bit
-    return decoded_num
+        # Measure the bit and insert it into the decoded number
+        encoded_num.H()
+        measure = encoded_num[i].measure()
+        decoded_num[i] = measure
+
+    return decoded_num, bases
 
 
 def truncate_key(key, length, correct_bases):
@@ -330,7 +342,7 @@ def break_into_parts(key, key_length):
     verification = key[: int(key_length / 2)]
     true_key = key[int(len(key) - key_length) :]
     # print(type(key))
-    return verification, BitVector(intVal=int(true_key), size=16 * 8)
+    return verification, true_key
 
 
 BLOCK_SIZE = 16
