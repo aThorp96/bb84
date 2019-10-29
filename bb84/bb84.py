@@ -238,7 +238,7 @@ def measure_given_basis(encoded_num, bases):
         # Measure the bit and insert it into the decoded number
         decoded_num |= (1 & encoded_num[i].measure()) << i
 
-    return decoded_num
+    return int(decoded_num)
 
 
 # Given a number, the number of bits to encode, and a connection to a CQC network,
@@ -266,7 +266,7 @@ def measure_standard(encoded_num):
         measure = encoded_num[i].measure()
         decoded_num[i] = measure
 
-    return decoded_num, bases
+    return int(decoded_num), bases
 
 
 # Given a number, the number of bits to encode, and a connection to a CQC network,
@@ -297,8 +297,9 @@ def measure_hadamard(encoded_num):
         encoded_num.H()
         measure = encoded_num[i].measure()
         decoded_num[i] = measure
+        bases[i] = 1
 
-    return decoded_num, bases
+    return int(decoded_num), bases
 
 
 def truncate_key(key, length, correct_bases):
