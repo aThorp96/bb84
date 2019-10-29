@@ -243,7 +243,7 @@ def measure_given_basis(encoded_num, bases):
 
 # Given a number, the number of bits to encode, and a connection to a CQC network,
 # encode that number into an array of qubits and return the result
-def encode_standard(connection, number):
+def encode_standard(connection, number, length):
     encoded = [None] * length
     num_vector = BitVector(intVal=number, size=length)
 
@@ -271,7 +271,7 @@ def measure_standard(encoded_num):
 
 # Given a number, the number of bits to encode, and a connection to a CQC network,
 # encode that number into an array of qubits using the Hadamard basis
-def encode_hadamard(connection, number):
+def encode_hadamard(connection, number, length):
     encoded = [None] * length
     num_vector = BitVector(intVal=number, size=length)
 
